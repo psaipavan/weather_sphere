@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HealthConnect Pro | Your Smart Healthcare Assistant</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="./new.css">
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <nav class="navbar">
+        <div class="container">
+            <a href="#" class="logo">
+                <i class="fas fa-heartbeat"></i> HealthConnect<span>Pro</span>
+            </a>
+            <ul class="nav-links">
+                <li><a href="#home">Home</a></li>
+                <li><a href="#services">Services</a></li>
+                <li><a href="#find-doctors">Find Doctors</a></li>
+                <li><a href="#emergency">Emergency</a></li>
+                <li><a href="#health-tools">Health Tools</a></li>
+                <li><a href="#contact">Contact</a></li>
+            </ul>
+            <div class="auth-buttons">
+                <a href="#" class="btn-login">Login</a>
+                <a href="#" class="btn-signup">Sign Up</a>
+            </div>
+            <div class="hamburger">
+                <i class="fas fa-bars"></i>
+            </div>
+        </div>
+    </nav>
+        <!-- New AI Diagnosis Section -->
+    <section id="ai-diagnosis" class="ai-diagnosis">
+        <div class="container">
+            <h2 class="section-title">AI Symptom Checker</h2>
+            <div class="diagnosis-flow">
+                <div class="step step1 active">
+                    <h3><span>1</span> Describe Your Symptoms</h3>
+                    <textarea id="symptoms-input" placeholder="Example: I've had fever, headache, and nausea for 3 days..."></textarea>
+                    <button id="analyze-btn" class="btn-primary">Analyze Symptoms</button>
+                </div>
+                
+                <div class="step step2">
+                    <h3><span>2</span> Possible Conditions</h3>
+                    <div class="conditions-grid" id="conditions-results">
+                        <!-- AI results will appear here -->
+                    </div>
+                    <button id="find-specialists-btn" class="btn-primary">Find Recommended Specialists</button>
+                </div>
+                
+                <div class="step step3">
+                    <h3><span>3</span> Recommended Specialists</h3>
+                    <div class="specialists-list" id="specialists-results">
+                        <!-- Specialists will appear here -->
+                    </div>
+                    <button id="find-hospitals-btn" class="btn-primary">Find Hospitals with These Specialists</button>
+                </div>
+                
+                <div class="step step4">
+                    <h3><span>4</span> Nearby Hospitals</h3>
+                    <div class="location-input">
+                        <input type="text" id="hospital-location" placeholder="Enter your location">
+                        <button id="locate-me-btn" class="secondary-btn"><i class="fas fa-location-arrow"></i></button>
+                    </div>
+                    <div class="hospitals-grid" id="hospitals-results">
+                        <!-- Hospitals will appear here -->
+                    </div>
+                    <div id="map-container">
+                        <div id="map"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Hero Section -->
+    <section id="home" class="hero">
+        <div class="container">
+            <div class="hero-content">
+                <h1>Your Health, Our Priority</h1>
+                <p>Find the best doctors, hospitals, and emergency care near you instantly.</p>
+                <div class="hero-buttons">
+                    <a href="#find-doctors" class="btn-primary">Find a Doctor</a>
+                    <a href="#emergency" class="btn-secondary">Emergency Help</a>
+                </div>
+            </div>
+            <div class="hero-image">
+                <img src="https://images.unsplash.com/photo-1576091160550-2173dba999ef?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80" alt="Healthcare">
+            </div>
+        </div>
+    </section>
+
+    <!-- Services Section -->
+    <section id="services" class="services">
+        <div class="container">
+            <h2 class="section-title">Our Services</h2>
+            <div class="services-grid">
+                <div class="service-card">
+                    <i class="fas fa-user-md"></i>
+                    <h3>Doctor Consultation</h3>
+                    <p>Book appointments with top specialists.</p>
+                </div>
+                <div class="service-card">
+                    <i class="fas fa-hospital"></i>
+                    <h3>Hospital Finder</h3>
+                    <p>Locate nearby hospitals with ratings.</p>
+                </div>
+                <div class="service-card">
+                    <i class="fas fa-ambulance"></i>
+                    <h3>Emergency Care</h3>
+                    <p>Immediate help in critical situations.</p>
+                </div>
+                <div class="service-card">
+                    <i class="fas fa-file-medical"></i>
+                    <h3>Medical Records</h3>
+                    <p>Upload & manage health records.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Doctor Finder Section -->
+    <section id="find-doctors" class="doctor-finder">
+        <div class="container">
+            <h2 class="section-title">Find Nearby Doctors</h2>
+            <div class="search-box">
+                <input type="text" placeholder="Search by specialty (e.g., Cardiologist)">
+                <input type="text" placeholder="Location">
+                <button class="btn-primary">Search</button>
+            </div>
+            <div class="doctor-grid">
+                <!-- Doctors will be loaded via JS -->
+            </div>
+        </div>
+    </section>
+
+    <!-- Emergency Section -->
+    <section id="emergency" class="emergency">
+        <div class="container">
+            <h2 class="section-title">Emergency Services</h2>
+            <div class="emergency-content">
+                <div class="emergency-info">
+                    <h3>Need Immediate Help?</h3>
+                    <p>Find the nearest emergency centers and ambulance services.</p>
+                    <button class="btn-primary">Call Emergency (911)</button>
+                </div>
+                <div class="emergency-map">
+                    <div id="map"></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Health Tools Section -->
+    <section id="health-tools" class="health-tools">
+        <div class="container">
+            <h2 class="section-title">Health Tools</h2>
+            <div class="tools-grid">
+                <div class="tool-card">
+                    <i class="fas fa-heartbeat"></i>
+                    <h3>Symptom Checker</h3>
+                    <p>Check symptoms and get possible diagnoses.</p>
+                </div>
+                <div class="tool-card">
+                    <i class="fas fa-pills"></i>
+                    <h3>Medicine Reminder</h3>
+                    <p>Set reminders for your medications.</p>
+                </div>
+                <div class="tool-card">
+                    <i class="fas fa-calendar-check"></i>
+                    <h3>Appointment Tracker</h3>
+                    <p>Manage upcoming doctor visits.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Contact Section -->
+    <section id="contact" class="contact">
+        <div class="container">
+            <h2 class="section-title">Contact Us</h2>
+            <div class="contact-content">
+                <form class="contact-form">
+                    <input type="text" placeholder="Name" required>
+                    <input type="email" placeholder="Email" required>
+                    <textarea placeholder="Message" required></textarea>
+                    <button type="submit" class="btn-primary">Send Message</button>
+                </form>
+                <div class="contact-info">
+                    <h3>Get in Touch</h3>
+                    <p><i class="fas fa-envelope"></i> contact@healthconnectpro.com</p>
+                    <p><i class="fas fa-phone"></i> +1 (123) 456-7890</p>
+                    <p><i class="fas fa-map-marker-alt"></i> 123 Medical Ave, Health City</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-logo">
+                    <a href="#"><i class="fas fa-heartbeat"></i> HealthConnect<span>Pro</span></a>
+                    <p>Your trusted healthcare companion.</p>
+                </div>
+                <div class="footer-links">
+                    <h3>Quick Links</h3>
+                    <ul>
+                        <li><a href="#home">Home</a></li>
+                        <li><a href="#services">Services</a></li>
+                        <li><a href="#find-doctors">Find Doctors</a></li>
+                        <li><a href="#emergency">Emergency</a></li>
+                    </ul>
+                </div>
+                <div class="footer-social">
+                    <h3>Follow Us</h3>
+                    <div class="social-icons">
+                        <a href="#"><i class="fab fa-facebook"></i></a>
+                        <a href="#"><i class="fab fa-twitter"></i></a>
+                        <a href="#"><i class="fab fa-instagram"></i></a>
+                        <a href="#"><i class="fab fa-linkedin"></i></a>
+                    </div>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2023 HealthConnect Pro. All Rights Reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY&callback=initMap" async defer></script>
+    <script src="./new.js"></script>
+</body>
+</html>
