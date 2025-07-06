@@ -933,569 +933,582 @@
   </div>
 
   <!-- Scripts -->
-  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
-  <script>
-    const API_KEY = "0edf63c143df47d2b0d74154250207";
-    let debounceTimeout;
-    let rainIntensity = 0;
-    let weatherEffectsInterval;
+<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+<script>
+  const API_KEY = "0edf63c143df47d2b0d74154250207";
+  let debounceTimeout;
+  let rainIntensity = 0;
+  let weatherEffectsInterval;
 
-    // Initialize app with default city
-    window.onload = function() {
+  // Initialize app with user's current location
+  window.onload = function() {
+    getCurrentLocation();
+  };
+
+  // Get user's current city location
+  function getCurrentLocation() {
+    showLoader(true);
+    document.getElementById('current').querySelector('.current-weather').innerHTML = `
+      <div class="location-info">
+        <h1 class="location-name">Detecting your location...</h1>
+        <p class="location-time">Please allow location access</p>
+      </div>
+    `;
+
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          try {
+            // Get city name from coordinates
+            const response = await axios.get(
+              `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${position.coords.latitude}&longitude=${position.coords.longitude}&localityLanguage=en`
+            );
+            
+            const city = response.data.city || response.data.locality;
+            if (city) {
+              document.getElementById('enteredCity').value = city;
+              getWeatherData(city);
+            } else {
+              throw new Error("Couldn't determine city name");
+            }
+          } catch (error) {
+            showAlert("Couldn't determine your city. Showing default location.", "warning");
+            document.getElementById('enteredCity').value = 'London';
+            getWeatherData('London');
+          }
+        },
+        (error) => {
+          showAlert("Location access denied. Showing default location.", "warning");
+          document.getElementById('enteredCity').value = 'London';
+          getWeatherData('London');
+        }
+      );
+    } else {
+      showAlert("Geolocation not supported. Showing default location.", "warning");
       document.getElementById('enteredCity').value = 'London';
-      getData();
-    };
-
-    // Main function to fetch weather data
-    async function getData() {
-      clearTimeout(debounceTimeout);
-      debounceTimeout = setTimeout(async () => {
-        const city = document.getElementById('enteredCity').value.trim();
-        if (!city) return showAlert("Please enter a city name", "warning");
-
-        try {
-          showLoader(true);
-          const API = `https://api.weatherapi.com/v1/forecast.json?q=${city}&days=7&aqi=yes&key=${API_KEY}`;
-          const response = await axios.get(API);
-          const weatherData = response.data;
-
-          // Show all cards with animation
-          ["current", "forecast", "air-quality", "seven-day"].forEach(id => {
-            const el = document.getElementById(id);
-            el.classList.remove("d-none");
-            el.classList.add("animate__animated", "animate__fadeIn");
-          });
-
-          // Update all components
-          updateCurrentWeather(weatherData);
-          updateHourlyForecast(weatherData.forecast.forecastday[0].hour);
-          updateAirQuality(weatherData.current);
-          updateSevenDayForecast(weatherData.forecast.forecastday);
-          
-          // Set visual effects based on weather
-          setWeatherEffects(weatherData);
-          
-          // Show success message
-          showAlert(`Weather data loaded for ${weatherData.location.name}`, "success");
-        } catch (error) {
-          showAlert("City not found or API error. Please try another location.", "error");
-          console.error("Weather API error:", error);
-          // Reset cards to initial state
-          resetCards();
-        } finally {
-          showLoader(false);
-        }
-      }, 300);
+      getWeatherData('London');
     }
+  }
 
-    // Show/hide loading state
-    function showLoader(show) {
-      const btn = document.querySelector('.search-btn');
-      if (show) {
-        btn.innerHTML = `<span class="loading-spinner"></span>`;
-        btn.disabled = true;
-      } else {
-        btn.innerHTML = `<i class="fas fa-search"></i><span>Search</span>`;
-        btn.disabled = false;
+  // Main function to fetch weather data
+  async function getWeatherData(city) {
+    try {
+      showLoader(true);
+      const API = `https://api.weatherapi.com/v1/forecast.json?q=${encodeURIComponent(city)}&days=7&aqi=yes&key=${API_KEY}`;
+      const response = await axios.get(API);
+      const weatherData = response.data;
+
+      // Update all components
+      updateCurrentWeather(weatherData);
+      updateHourlyForecast(weatherData.forecast.forecastday[0].hour);
+      updateAirQuality(weatherData.current);
+      updateSevenDayForecast(weatherData.forecast.forecastday);
+      setWeatherEffects(weatherData);
+      
+      showAlert(`Showing weather for ${weatherData.location.name}`, "success");
+    } catch (error) {
+      showAlert("Couldn't fetch weather data. Please try another location.", "error");
+      resetCards();
+    } finally {
+      showLoader(false);
+    }
+  }
+
+  // Handle manual search
+  function getData() {
+    clearTimeout(debounceTimeout);
+    debounceTimeout = setTimeout(() => {
+      const city = document.getElementById('enteredCity').value.trim();
+      if (city) {
+        getWeatherData(city);
       }
-    }
+    }, 300);
+  }
 
-    // Show alert message
-    function showAlert(message, type) {
-      const existingAlert = document.querySelector('.weather-alert');
-      if (existingAlert) existingAlert.remove();
-      
-      const alert = document.createElement('div');
-      alert.className = `weather-alert alert-${type}`;
-      alert.innerHTML = `
-        <i class="fas ${type === 'success' ? 'fa-check-circle' : type === 'error' ? 'fa-exclamation-circle' : 'fa-info-circle'}"></i>
-        ${message}
-      `;
-      
-      document.body.appendChild(alert);
-      
-      setTimeout(() => {
-        alert.remove();
-      }, 3000);
+  // Show/hide loading state
+  function showLoader(show) {
+    const btn = document.querySelector('.search-btn');
+    if (show) {
+      btn.innerHTML = `<span class="loading-spinner"></span>`;
+      btn.disabled = true;
+    } else {
+      btn.innerHTML = `<i class="fas fa-search"></i><span>Search</span>`;
+      btn.disabled = false;
     }
+  }
 
-    // Reset cards to initial state
-    function resetCards() {
-      document.getElementById('current').querySelector('.current-weather').innerHTML = `
-        <div class="location-info">
-          <h1 class="location-name">Loading...</h1>
-          <p class="location-time">Please search for a city</p>
-        </div>
-      `;
-      document.getElementById('air-quality').querySelector('.air-quality-container').innerHTML = `
-        <div class="alert alert-info" style="background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.2); color: var(--accent);">
-          <i class="fas fa-info-circle"></i> Search for a city to view air quality
-        </div>
-      `;
-      document.getElementById('forecast').querySelector('.card-body').innerHTML = `
-        <div class="alert alert-info" style="background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.2); color: var(--accent);">
-          <i class="fas fa-info-circle"></i> Search for a city to view hourly forecast
-        </div>
-      `;
-      document.getElementById('seven-day').querySelector('.daily-forecast').innerHTML = `
-        <div class="alert alert-info" style="background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.2); color: var(--accent);">
-          <i class="fas fa-info-circle"></i> Search for a city to view 7-day forecast
-        </div>
-      `;
-    }
+  // Show alert message
+  function showAlert(message, type) {
+    const existingAlert = document.querySelector('.weather-alert');
+    if (existingAlert) existingAlert.remove();
+    
+    const alert = document.createElement('div');
+    alert.className = `weather-alert alert-${type}`;
+    alert.innerHTML = `
+      <i class="fas ${type === 'success' ? 'fa-check-circle' : type === 'error' ? 'fa-exclamation-circle' : 'fa-info-circle'}"></i>
+      ${message}
+    `;
+    
+    document.body.appendChild(alert);
+    
+    setTimeout(() => {
+      alert.remove();
+    }, 3000);
+  }
 
-    // Set visual effects based on weather conditions
-    function setWeatherEffects(data) {
-      const bg = document.getElementById('weather-bg');
-      const particlesContainer = document.getElementById('particles-container');
-      const appContainer = document.getElementById('app-container');
-      
-      // Clear previous effects
-      particlesContainer.innerHTML = '';
-      appContainer.classList.remove('dark-theme');
-      clearInterval(weatherEffectsInterval);
-      
-      const condition = data.current.condition.text.toLowerCase();
-      const isDay = data.current.is_day === 1;
-      const precipMM = data.current.precip_mm;
-      
-      // Set rain intensity based on precipitation
-      rainIntensity = Math.min(Math.max(precipMM / 10, 0.3), 1);
-      
-      // Reset background classes
-      bg.className = '';
-      
-      // Set background based on conditions
-      if (condition.includes("thunder") || condition.includes("storm")) {
-        bg.classList.add('thunderstorm-bg');
-        appContainer.classList.add('dark-theme');
-        createThunderstormEffect();
-      } else if (!isDay) {
-        bg.classList.add('night-bg');
-        appContainer.classList.add('dark-theme');
-        createStarryNight();
-      } else if (condition.includes("rain") || condition.includes("drizzle")) {
-        bg.classList.add('rainy-bg');
-        appContainer.classList.add('dark-theme');
-        createRainEffect();
-      } else if (condition.includes("snow") || condition.includes("sleet")) {
-        bg.classList.add('snow-bg');
-        appContainer.classList.add('dark-theme');
-        createSnowEffect();
-      } else if (condition.includes("cloud") || condition.includes("overcast")) {
-        bg.classList.add('cloudy-bg');
-        appContainer.classList.add('dark-theme');
-        createCloudEffect();
-      } else if (condition.includes("fog") || condition.includes("mist")) {
-        bg.classList.add('fog-bg');
-        createFogEffect();
-      } else if (condition.includes("sun") || condition.includes("clear")) {
-        bg.classList.add('sunny-bg');
-        createSunEffect();
-      }
-    }
+  // Reset cards to initial state
+  function resetCards() {
+    document.getElementById('current').querySelector('.current-weather').innerHTML = `
+      <div class="location-info">
+        <h1 class="location-name">Weather Data</h1>
+        <p class="location-time">Please search for a city</p>
+      </div>
+    `;
+    document.getElementById('air-quality').querySelector('.air-quality-container').innerHTML = `
+      <div class="alert alert-info" style="background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.2); color: var(--accent);">
+        <i class="fas fa-info-circle"></i> Search for a city to view air quality
+      </div>
+    `;
+    document.getElementById('forecast').querySelector('.card-body').innerHTML = `
+      <div class="alert alert-info" style="background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.2); color: var(--accent);">
+        <i class="fas fa-info-circle"></i> Search for a city to view hourly forecast
+      </div>
+    `;
+    document.getElementById('seven-day').querySelector('.daily-forecast').innerHTML = `
+      <div class="alert alert-info" style="background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.2); color: var(--accent);">
+        <i class="fas fa-info-circle"></i> Search for a city to view 7-day forecast
+      </div>
+    `;
+  }
 
-    // Create starry night effect
-    function createStarryNight() {
-      const container = document.getElementById('particles-container');
-      for (let i = 0; i < 200; i++) {
-        const star = document.createElement('div');
-        star.className = 'weather-particle star';
-        star.style.left = `${Math.random() * 100}%`;
-        star.style.top = `${Math.random() * 100}%`;
-        star.style.width = `${1 + Math.random() * 3}px`;
-        star.style.height = star.style.width;
-        star.style.animationDelay = `${Math.random() * 2}s`;
-        container.appendChild(star);
-      }
-    }
-
-    // Create rain particles with dynamic intensity
-    function createRainEffect() {
-      const container = document.getElementById('particles-container');
-      const particleCount = Math.floor(50 + rainIntensity * 200);
-      
-      // Create rain drops
-      for (let i = 0; i < particleCount; i++) {
-        const rain = document.createElement('div');
-        rain.className = 'weather-particle rain-particle';
-        rain.style.left = `${Math.random() * 100}%`;
-        rain.style.animationDuration = `${0.3 + Math.random() * 0.4 / rainIntensity}s`;
-        rain.style.animationDelay = `${Math.random() * 2}s`;
-        rain.style.opacity = `${0.4 + Math.random() * 0.5}`;
-        container.appendChild(rain);
-      }
-      
-      // Create splashes at random intervals
-      weatherEffectsInterval = setInterval(() => {
-        if (Math.random() < rainIntensity * 0.3) {
-          createSplash();
-        }
-      }, 50);
-    }
-
-    // Create rain splash effect
-    function createSplash() {
-      const container = document.getElementById('particles-container');
-      const splash = document.createElement('div');
-      splash.className = 'weather-particle splash';
-      splash.style.left = `${Math.random() * 100}%`;
-      splash.style.bottom = `${20 + Math.random() * 20}%`;
-      splash.style.opacity = `${0.5 + Math.random() * 0.5}`;
-      container.appendChild(splash);
-      
-      // Remove splash after animation completes
-      setTimeout(() => {
-        splash.remove();
-      }, 400);
-    }
-
-    // Create snow particles
-    function createSnowEffect() {
-      const container = document.getElementById('particles-container');
-      for (let i = 0; i < 150; i++) {
-        const snow = document.createElement('div');
-        snow.className = 'weather-particle snow-particle';
-        snow.style.left = `${Math.random() * 100}%`;
-        snow.style.animationDuration = `${5 + Math.random() * 12}s`;
-        snow.style.animationDelay = `${Math.random() * 5}s`;
-        snow.style.width = `${6 + Math.random() * 8}px`;
-        snow.style.height = snow.style.width;
-        container.appendChild(snow);
-      }
-    }
-
-    // Create cloud effect
-    function createCloudEffect() {
-      const container = document.getElementById('particles-container');
-      for (let i = 0; i < 10; i++) {
-        const cloud = document.createElement('div');
-        cloud.className = 'weather-particle cloud';
-        cloud.style.width = `${120 + Math.random() * 180}px`;
-        cloud.style.height = `${80 + Math.random() * 100}px`;
-        cloud.style.top = `${5 + Math.random() * 25}%`;
-        cloud.style.left = `${Math.random() * 100}%`;
-        cloud.style.opacity = `${0.4 + Math.random() * 0.4}`;
-        cloud.style.animationDuration = `${25 + Math.random() * 50}s`;
-        container.appendChild(cloud);
-      }
-    }
-
-    // Create fog effect
-    function createFogEffect() {
-      const container = document.getElementById('particles-container');
-      for (let i = 0; i < 15; i++) {
-        const fog = document.createElement('div');
-        fog.className = 'weather-particle fog-particle';
-        fog.style.width = `${150 + Math.random() * 200}px`;
-        fog.style.height = `${100 + Math.random() * 150}px`;
-        fog.style.top = `${Math.random() * 100}%`;
-        fog.style.left = `${-20 + Math.random() * 40}%`;
-        fog.style.opacity = `${0.1 + Math.random() * 0.2}`;
-        fog.style.animationDuration = `${30 + Math.random() * 60}s`;
-        container.appendChild(fog);
-      }
-    }
-
-    // Create sun effect
-    function createSunEffect() {
-      const container = document.getElementById('particles-container');
-      const sunRays = document.createElement('div');
-      sunRays.className = 'weather-particle sun-rays';
-      container.appendChild(sunRays);
-    }
-
-    // Create thunderstorm effect
-    function createThunderstormEffect() {
-      const container = document.getElementById('particles-container');
-      
-      // Create heavy rain
+  // Set visual effects based on weather conditions
+  function setWeatherEffects(data) {
+    const bg = document.getElementById('weather-bg');
+    const particlesContainer = document.getElementById('particles-container');
+    const appContainer = document.getElementById('app-container');
+    
+    // Clear previous effects
+    particlesContainer.innerHTML = '';
+    appContainer.classList.remove('dark-theme');
+    clearInterval(weatherEffectsInterval);
+    
+    const condition = data.current.condition.text.toLowerCase();
+    const isDay = data.current.is_day === 1;
+    const precipMM = data.current.precip_mm;
+    
+    // Set rain intensity based on precipitation
+    rainIntensity = Math.min(Math.max(precipMM / 10, 0.3), 1);
+    
+    // Reset background classes
+    bg.className = '';
+    
+    // Set background based on conditions
+    if (condition.includes("thunder") || condition.includes("storm")) {
+      bg.classList.add('thunderstorm-bg');
+      appContainer.classList.add('dark-theme');
+      createThunderstormEffect();
+    } else if (!isDay) {
+      bg.classList.add('night-bg');
+      appContainer.classList.add('dark-theme');
+      createStarryNight();
+    } else if (condition.includes("rain") || condition.includes("drizzle")) {
+      bg.classList.add('rainy-bg');
+      appContainer.classList.add('dark-theme');
       createRainEffect();
-      
-      // Create occasional lightning flashes
-      weatherEffectsInterval = setInterval(() => {
-        if (Math.random() < 0.02) { // 2% chance of lightning per interval
-          createLightning();
-        }
-      }, 1000);
+    } else if (condition.includes("snow") || condition.includes("sleet")) {
+      bg.classList.add('snow-bg');
+      appContainer.classList.add('dark-theme');
+      createSnowEffect();
+    } else if (condition.includes("cloud") || condition.includes("overcast")) {
+      bg.classList.add('cloudy-bg');
+      appContainer.classList.add('dark-theme');
+      createCloudEffect();
+    } else if (condition.includes("fog") || condition.includes("mist")) {
+      bg.classList.add('fog-bg');
+      createFogEffect();
+    } else if (condition.includes("sun") || condition.includes("clear")) {
+      bg.classList.add('sunny-bg');
+      createSunEffect();
     }
+  }
 
-    // Create lightning flash
-    function createLightning() {
-      const container = document.getElementById('particles-container');
-      const lightning = document.createElement('div');
-      lightning.className = 'weather-particle lightning';
-      lightning.style.animation = 'lightning 4s linear';
-      container.appendChild(lightning);
-      
-      // Remove lightning after animation
-      setTimeout(() => {
-        lightning.remove();
-      }, 4000);
+  // Weather effect creation functions
+  function createStarryNight() {
+    const container = document.getElementById('particles-container');
+    for (let i = 0; i < 200; i++) {
+      const star = document.createElement('div');
+      star.className = 'weather-particle star';
+      star.style.left = `${Math.random() * 100}%`;
+      star.style.top = `${Math.random() * 100}%`;
+      star.style.width = `${1 + Math.random() * 3}px`;
+      star.style.height = star.style.width;
+      star.style.animationDelay = `${Math.random() * 2}s`;
+      container.appendChild(star);
     }
+  }
 
-    // Update current weather card
-    function updateCurrentWeather(data) {
-      const isDay = data.current.is_day === 1;
-      const iconUrl = data.current.condition.icon.replace("64x64", "128x128");
-      const localTime = new Date(data.location.localtime);
-      
-      document.getElementById('current').querySelector('.current-weather').innerHTML = `
-        <div class="location-info">
-          <h1 class="location-name">${data.location.name}, ${data.location.country}</h1>
-          <p class="location-time">${localTime.toLocaleString('en-US', { 
-            weekday: 'long', 
-            hour: 'numeric', 
-            minute: 'numeric', 
-            hour12: true 
-          })}</p>
-          <p class="weather-condition">${data.current.condition.text}</p>
-        </div>
-        
-        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-          <div>
-            <div class="temperature-display">
-              <span>${Math.round(data.current.temp_c)}</span>°C
-            </div>
-            <p class="feels-like">Feels like ${Math.round(data.current.feelslike_c)}°C • 
-              H:${Math.round(data.forecast.forecastday[0].day.maxtemp_c)}° 
-              L:${Math.round(data.forecast.forecastday[0].day.mintemp_c)}°
-            </p>
-          </div>
-          <img src="${iconUrl}" alt="Weather icon" class="weather-icon" />
-        </div>
-        
-        <div class="weather-stats">
-          <div class="stat-item">
-            <div class="stat-icon">
-              <i class="fas fa-tint"></i>
-            </div>
-            <div>
-              <div class="stat-value">${data.current.humidity}%</div>
-              <div class="stat-label">Humidity</div>
-            </div>
-          </div>
-          
-          <div class="stat-item">
-            <div class="stat-icon">
-              <i class="fas fa-wind"></i>
-            </div>
-            <div>
-              <div class="stat-value">${data.current.wind_kph} km/h</div>
-              <div class="stat-label">Wind</div>
-            </div>
-          </div>
-          
-          <div class="stat-item">
-            <div class="stat-icon">
-              <i class="fas fa-eye"></i>
-            </div>
-            <div>
-              <div class="stat-value">${data.current.vis_km} km</div>
-              <div class="stat-label">Visibility</div>
-            </div>
-          </div>
-          
-          <div class="stat-item">
-            <div class="stat-icon">
-              <i class="fas fa-thermometer-half"></i>
-            </div>
-            <div>
-              <div class="stat-value">${data.current.pressure_mb} hPa</div>
-              <div class="stat-label">Pressure</div>
-            </div>
-          </div>
-          
-          <div class="stat-item">
-            <div class="stat-icon">
-              <i class="fas fa-cloud-rain"></i>
-            </div>
-            <div>
-              <div class="stat-value">${data.current.precip_mm} mm</div>
-              <div class="stat-label">Precipitation</div>
-            </div>
-          </div>
-          
-          <div class="stat-item">
-            <div class="stat-icon">
-              <i class="fas fa-sun"></i>
-            </div>
-            <div>
-              <div class="stat-value">${data.current.uv}</div>
-              <div class="stat-label">UV Index</div>
-            </div>
-          </div>
-        </div>
-      `;
+  function createRainEffect() {
+    const container = document.getElementById('particles-container');
+    const particleCount = Math.floor(50 + rainIntensity * 200);
+    
+    for (let i = 0; i < particleCount; i++) {
+      const rain = document.createElement('div');
+      rain.className = 'weather-particle rain-particle';
+      rain.style.left = `${Math.random() * 100}%`;
+      rain.style.animationDuration = `${0.3 + Math.random() * 0.4 / rainIntensity}s`;
+      rain.style.animationDelay = `${Math.random() * 2}s`;
+      rain.style.opacity = `${0.4 + Math.random() * 0.5}`;
+      container.appendChild(rain);
     }
-
-    // Update hourly forecast
-    function updateHourlyForecast(hourlyData) {
-      const now = new Date();
-      const currentHour = now.getHours();
-      let forecastHTML = `
-        <div class="hourly-forecast-container">
-          <table class="hourly-table">
-            <thead>
-              <tr>
-                <th>Time</th>
-                <th>Condition</th>
-                <th>Temp</th>
-                <th>Rain</th>
-                <th>Wind</th>
-              </tr>
-            </thead>
-            <tbody>
-      `;
-      
-      for (let i = 0; i < 12; i++) {
-        const hourIndex = (currentHour + i) % 24;
-        const hour = hourlyData[hourIndex];
-        const time = new Date(hour.time);
-        const displayTime = time.toLocaleString('en-US', { hour: 'numeric', hour12: true });
-        
-        forecastHTML += `
-          <tr>
-            <td>${i === 0 ? 'Now' : displayTime}</td>
-            <td><img src="${hour.condition.icon}" alt="Weather icon" class="hour-icon" /></td>
-            <td>${Math.round(hour.temp_c)}°</td>
-            <td>${hour.chance_of_rain > 0 ? 
-              `<i class="fas fa-cloud-rain"></i> ${hour.chance_of_rain}%` : 
-              '-'}</td>
-            <td><i class="fas fa-wind"></i> ${hour.wind_kph} km/h</td>
-          </tr>
-        `;
+    
+    weatherEffectsInterval = setInterval(() => {
+      if (Math.random() < rainIntensity * 0.3) {
+        createSplash();
       }
+    }, 50);
+  }
+
+  function createSplash() {
+    const container = document.getElementById('particles-container');
+    const splash = document.createElement('div');
+    splash.className = 'weather-particle splash';
+    splash.style.left = `${Math.random() * 100}%`;
+    splash.style.bottom = `${20 + Math.random() * 20}%`;
+    splash.style.opacity = `${0.5 + Math.random() * 0.5}`;
+    container.appendChild(splash);
+    
+    setTimeout(() => {
+      splash.remove();
+    }, 400);
+  }
+
+  function createSnowEffect() {
+    const container = document.getElementById('particles-container');
+    for (let i = 0; i < 150; i++) {
+      const snow = document.createElement('div');
+      snow.className = 'weather-particle snow-particle';
+      snow.style.left = `${Math.random() * 100}%`;
+      snow.style.animationDuration = `${5 + Math.random() * 12}s`;
+      snow.style.animationDelay = `${Math.random() * 5}s`;
+      snow.style.width = `${6 + Math.random() * 8}px`;
+      snow.style.height = snow.style.width;
+      container.appendChild(snow);
+    }
+  }
+
+  function createCloudEffect() {
+    const container = document.getElementById('particles-container');
+    for (let i = 0; i < 10; i++) {
+      const cloud = document.createElement('div');
+      cloud.className = 'weather-particle cloud';
+      cloud.style.width = `${120 + Math.random() * 180}px`;
+      cloud.style.height = `${80 + Math.random() * 100}px`;
+      cloud.style.top = `${5 + Math.random() * 25}%`;
+      cloud.style.left = `${Math.random() * 100}%`;
+      cloud.style.opacity = `${0.4 + Math.random() * 0.4}`;
+      cloud.style.animationDuration = `${25 + Math.random() * 50}s`;
+      container.appendChild(cloud);
+    }
+  }
+
+  function createFogEffect() {
+    const container = document.getElementById('particles-container');
+    for (let i = 0; i < 15; i++) {
+      const fog = document.createElement('div');
+      fog.className = 'weather-particle fog-particle';
+      fog.style.width = `${150 + Math.random() * 200}px`;
+      fog.style.height = `${100 + Math.random() * 150}px`;
+      fog.style.top = `${Math.random() * 100}%`;
+      fog.style.left = `${-20 + Math.random() * 40}%`;
+      fog.style.opacity = `${0.1 + Math.random() * 0.2}`;
+      fog.style.animationDuration = `${30 + Math.random() * 60}s`;
+      container.appendChild(fog);
+    }
+  }
+
+  function createSunEffect() {
+    const container = document.getElementById('particles-container');
+    const sunRays = document.createElement('div');
+    sunRays.className = 'weather-particle sun-rays';
+    container.appendChild(sunRays);
+  }
+
+  function createThunderstormEffect() {
+    const container = document.getElementById('particles-container');
+    createRainEffect();
+    weatherEffectsInterval = setInterval(() => {
+      if (Math.random() < 0.02) {
+        createLightning();
+      }
+    }, 1000);
+  }
+
+  function createLightning() {
+    const container = document.getElementById('particles-container');
+    const lightning = document.createElement('div');
+    lightning.className = 'weather-particle lightning';
+    lightning.style.animation = 'lightning 4s linear';
+    container.appendChild(lightning);
+    setTimeout(() => {
+      lightning.remove();
+    }, 4000);
+  }
+
+  // Update current weather card
+  function updateCurrentWeather(data) {
+    const isDay = data.current.is_day === 1;
+    const iconUrl = data.current.condition.icon.replace("64x64", "128x128");
+    const localTime = new Date(data.location.localtime);
+    
+    document.getElementById('current').querySelector('.current-weather').innerHTML = `
+      <div class="location-info">
+        <h1 class="location-name">${data.location.name}, ${data.location.country}</h1>
+        <p class="location-time">${localTime.toLocaleString('en-US', { 
+          weekday: 'long', 
+          hour: 'numeric', 
+          minute: 'numeric', 
+          hour12: true 
+        })}</p>
+        <p class="weather-condition">${data.current.condition.text}</p>
+      </div>
+      
+      <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <div>
+          <div class="temperature-display">
+            <span>${Math.round(data.current.temp_c)}</span>°C
+          </div>
+          <p class="feels-like">Feels like ${Math.round(data.current.feelslike_c)}°C • 
+            H:${Math.round(data.forecast.forecastday[0].day.maxtemp_c)}° 
+            L:${Math.round(data.forecast.forecastday[0].day.mintemp_c)}°
+          </p>
+        </div>
+        <img src="${iconUrl}" alt="Weather icon" class="weather-icon" />
+      </div>
+      
+      <div class="weather-stats">
+        <div class="stat-item">
+          <div class="stat-icon">
+            <i class="fas fa-tint"></i>
+          </div>
+          <div>
+            <div class="stat-value">${data.current.humidity}%</div>
+            <div class="stat-label">Humidity</div>
+          </div>
+        </div>
+        
+        <div class="stat-item">
+          <div class="stat-icon">
+            <i class="fas fa-wind"></i>
+          </div>
+          <div>
+            <div class="stat-value">${data.current.wind_kph} km/h</div>
+            <div class="stat-label">Wind</div>
+          </div>
+        </div>
+        
+        <div class="stat-item">
+          <div class="stat-icon">
+            <i class="fas fa-eye"></i>
+          </div>
+          <div>
+            <div class="stat-value">${data.current.vis_km} km</div>
+            <div class="stat-label">Visibility</div>
+          </div>
+        </div>
+        
+        <div class="stat-item">
+          <div class="stat-icon">
+            <i class="fas fa-thermometer-half"></i>
+          </div>
+          <div>
+            <div class="stat-value">${data.current.pressure_mb} hPa</div>
+            <div class="stat-label">Pressure</div>
+          </div>
+        </div>
+        
+        <div class="stat-item">
+          <div class="stat-icon">
+            <i class="fas fa-cloud-rain"></i>
+          </div>
+          <div>
+            <div class="stat-value">${data.current.precip_mm} mm</div>
+            <div class="stat-label">Precipitation</div>
+          </div>
+        </div>
+        
+        <div class="stat-item">
+          <div class="stat-icon">
+            <i class="fas fa-sun"></i>
+          </div>
+          <div>
+            <div class="stat-value">${data.current.uv}</div>
+            <div class="stat-label">UV Index</div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  // Update hourly forecast
+  function updateHourlyForecast(hourlyData) {
+    const now = new Date();
+    const currentHour = now.getHours();
+    let forecastHTML = `
+      <div class="hourly-forecast-container">
+        <table class="hourly-table">
+          <thead>
+            <tr>
+              <th>Time</th>
+              <th>Condition</th>
+              <th>Temp</th>
+              <th>Rain</th>
+              <th>Wind</th>
+            </tr>
+          </thead>
+          <tbody>
+    `;
+    
+    for (let i = 0; i < 12; i++) {
+      const hourIndex = (currentHour + i) % 24;
+      const hour = hourlyData[hourIndex];
+      const time = new Date(hour.time);
+      const displayTime = time.toLocaleString('en-US', { hour: 'numeric', hour12: true });
       
       forecastHTML += `
-            </tbody>
-          </table>
-        </div>
-      `;
-      document.getElementById('forecast').querySelector('.card-body').innerHTML = forecastHTML;
-    }
-
-    // Update air quality card
-    function updateAirQuality(currentData) {
-      const air = currentData.air_quality || {};
-      const aqi = Math.min(air["us-epa-index"] || 1, 6);
-      
-      const aqiLevels = [
-        { text: "Good", color: "#10b981" },
-        { text: "Moderate", color: "#f59e0b" },
-        { text: "Unhealthy for Sensitive Groups", color: "#f97316" },
-        { text: "Unhealthy", color: "#ef4444" },
-        { text: "Very Unhealthy", color: "#8b5cf6" },
-        { text: "Hazardous", color: "#7c3aed" }
-      ];
-      
-      const level = aqiLevels[aqi - 1] || aqiLevels[0];
-      const hasData = air.pm2_5 || air.pm10 || air.o3 || air.no2;
-
-      document.getElementById('air-quality').querySelector('.air-quality-container').innerHTML = `
-        <div class="aqi-display">
-          <div class="aqi-value" style="background: ${level.color}20; border: 2px solid ${level.color}; color: ${level.color}">
-            ${aqi}
-          </div>
-          <div>
-            <h3 class="aqi-text">${level.text}</h3>
-            <p class="aqi-standard">US EPA standard</p>
-          </div>
-        </div>
-        
-        ${hasData ? `
-          <div class="pollutants-grid">
-            ${renderPollutant("PM2.5", air.pm2_5, level.color)}
-            ${renderPollutant("PM10", air.pm10, level.color)}
-            ${renderPollutant("O₃", air.o3, level.color)}
-            ${renderPollutant("NO₂", air.no2, level.color)}
-            ${renderPollutant("CO", air.co, level.color)}
-            ${renderPollutant("SO₂", air.so2, level.color)}
-          </div>
-        ` : `
-          <div class="alert alert-info" style="background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.2); color: var(--accent);">
-            <i class="fas fa-info-circle"></i> Air quality data not available for this location
-          </div>
-        `}
+        <tr>
+          <td>${i === 0 ? 'Now' : displayTime}</td>
+          <td><img src="${hour.condition.icon}" alt="Weather icon" class="hour-icon" /></td>
+          <td>${Math.round(hour.temp_c)}°</td>
+          <td>${hour.chance_of_rain > 0 ? 
+            `<i class="fas fa-cloud-rain"></i> ${hour.chance_of_rain}%` : 
+            '-'}</td>
+          <td><i class="fas fa-wind"></i> ${hour.wind_kph} km/h</td>
+        </tr>
       `;
     }
+    
+    forecastHTML += `
+          </tbody>
+        </table>
+      </div>
+    `;
+    document.getElementById('forecast').querySelector('.card-body').innerHTML = forecastHTML;
+  }
 
-    // Helper function to render pollutant item
-    function renderPollutant(name, value, color) {
-      if (value === undefined || value === null) {
-        return `
-          <div class="pollutant-item">
-            <div class="pollutant-header">
-              <span class="pollutant-name">${name}</span>
-              <span class="pollutant-value">N/A</span>
-            </div>
-            <div class="pollutant-bar">
-              <div class="pollutant-level" style="width: 0%; background: ${color};"></div>
-            </div>
-          </div>
-        `;
-      }
+  // Update air quality card
+  function updateAirQuality(currentData) {
+    const air = currentData.air_quality || {};
+    const aqi = Math.min(air["us-epa-index"] || 1, 6);
+    
+    const aqiLevels = [
+      { text: "Good", color: "#10b981" },
+      { text: "Moderate", color: "#f59e0b" },
+      { text: "Unhealthy for Sensitive Groups", color: "#f97316" },
+      { text: "Unhealthy", color: "#ef4444" },
+      { text: "Very Unhealthy", color: "#8b5cf6" },
+      { text: "Hazardous", color: "#7c3aed" }
+    ];
+    
+    const level = aqiLevels[aqi - 1] || aqiLevels[0];
+    const hasData = air.pm2_5 || air.pm10 || air.o3 || air.no2;
+
+    document.getElementById('air-quality').querySelector('.air-quality-container').innerHTML = `
+      <div class="aqi-display">
+        <div class="aqi-value" style="background: ${level.color}20; border: 2px solid ${level.color}; color: ${level.color}">
+          ${aqi}
+        </div>
+        <div>
+          <h3 class="aqi-text">${level.text}</h3>
+          <p class="aqi-standard">US EPA standard</p>
+        </div>
+      </div>
       
-      const progress = Math.min(value, 100);
-      
+      ${hasData ? `
+        <div class="pollutants-grid">
+          ${renderPollutant("PM2.5", air.pm2_5, level.color)}
+          ${renderPollutant("PM10", air.pm10, level.color)}
+          ${renderPollutant("O₃", air.o3, level.color)}
+          ${renderPollutant("NO₂", air.no2, level.color)}
+          ${renderPollutant("CO", air.co, level.color)}
+          ${renderPollutant("SO₂", air.so2, level.color)}
+        </div>
+      ` : `
+        <div class="alert alert-info" style="background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.2); color: var(--accent);">
+          <i class="fas fa-info-circle"></i> Air quality data not available for this location
+        </div>
+      `}
+    `;
+  }
+
+  function renderPollutant(name, value, color) {
+    if (value === undefined || value === null) {
       return `
         <div class="pollutant-item">
           <div class="pollutant-header">
             <span class="pollutant-name">${name}</span>
-            <span class="pollutant-value">${value.toFixed(1)} µg/m³</span>
+            <span class="pollutant-value">N/A</span>
           </div>
           <div class="pollutant-bar">
-            <div class="pollutant-level" style="width: ${progress}%; background: ${color};"></div>
+            <div class="pollutant-level" style="width: 0%; background: ${color};"></div>
           </div>
         </div>
       `;
     }
+    
+    const progress = Math.min(value, 100);
+    
+    return `
+      <div class="pollutant-item">
+        <div class="pollutant-header">
+          <span class="pollutant-name">${name}</span>
+          <span class="pollutant-value">${value.toFixed(1)} µg/m³</span>
+        </div>
+        <div class="pollutant-bar">
+          <div class="pollutant-level" style="width: ${progress}%; background: ${color};"></div>
+        </div>
+      </div>
+    `;
+  }
 
-    // Update 7-day forecast
-    function updateSevenDayForecast(forecastDays) {
-      let html = '';
+  // Update 7-day forecast
+  function updateSevenDayForecast(forecastDays) {
+    let html = '';
+    
+    forecastDays.forEach((day, index) => {
+      const date = new Date(day.date);
+      const dayName = index === 0 ? 'Today' : date.toLocaleDateString('en-US', { weekday: 'short' });
+      const iconUrl = day.day.condition.icon.replace("64x64", "128x128");
       
-      forecastDays.forEach((day, index) => {
-        const date = new Date(day.date);
-        const dayName = index === 0 ? 'Today' : date.toLocaleDateString('en-US', { weekday: 'short' });
-        const iconUrl = day.day.condition.icon.replace("64x64", "128x128");
-        
-        html += `
-          <div class="day-item">
-            <div class="day-name">${dayName}</div>
-            <img src="${iconUrl}" alt="Weather icon" class="day-icon" />
-            <div class="day-precipitation">
-              ${day.day.daily_chance_of_rain > 0 ? 
-                `<i class="fas fa-cloud-rain"></i> ${day.day.daily_chance_of_rain}%` : 
-                '<i class="fas fa-sun" style="opacity: 0.3;"></i> 0%'
-              }
-            </div>
-            <div class="day-temps">
-              <span class="day-max">${Math.round(day.day.maxtemp_c)}°</span>
-              <span class="day-min">${Math.round(day.day.mintemp_c)}°</span>
-            </div>
+      html += `
+        <div class="day-item">
+          <div class="day-name">${dayName}</div>
+          <img src="${iconUrl}" alt="Weather icon" class="day-icon" />
+          <div class="day-precipitation">
+            ${day.day.daily_chance_of_rain > 0 ? 
+              `<i class="fas fa-cloud-rain"></i> ${day.day.daily_chance_of_rain}%` : 
+              '<i class="fas fa-sun" style="opacity: 0.3;"></i> 0%'
+            }
           </div>
-        `;
-      });
-      
-      document.getElementById("seven-day").querySelector('.daily-forecast').innerHTML = html;
-    }
-
-    // Add event listeners
-    document.addEventListener('DOMContentLoaded', function() {
-      // Initialize with default city
-      getData();
-      
-      // Add click event to search button
-      document.querySelector('.search-btn').addEventListener('click', getData);
-      
-      // Add keypress event to input field
-      document.getElementById('enteredCity').addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') {
-          getData();
-        }
-      });
+          <div class="day-temps">
+            <span class="day-max">${Math.round(day.day.maxtemp_c)}°</span>
+            <span class="day-min">${Math.round(day.day.mintemp_c)}°</span>
+          </div>
+        </div>
+      `;
     });
-  </script>
+    
+    document.getElementById("seven-day").querySelector('.daily-forecast').innerHTML = html;
+  }
+
+  // Add event listeners
+  document.addEventListener('DOMContentLoaded', function() {
+    document.querySelector('.search-btn').addEventListener('click', getData);
+    document.getElementById('enteredCity').addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') {
+        getData();
+      }
+    });
+  });
+</script>
 </body>
 </html>
