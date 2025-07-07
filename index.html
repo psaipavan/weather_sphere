@@ -1031,8 +1031,8 @@ function getCurrentLocation() {
           }
         } catch (error) {
           showAlert("Couldn't determine your city. Showing default location.", "warning");
-          document.getElementById('enteredCity').value = 'London';
-          getWeatherData('London');
+          document.getElementById('enteredCity').value = 'Hyderabad';
+          getWeatherData('Hyderabad');
         }
       },
       (error) => {
