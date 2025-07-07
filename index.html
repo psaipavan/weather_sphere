@@ -1044,15 +1044,15 @@ function getCurrentLocation() {
         } else {
           showAlert("Error getting location. Showing default location.", "warning");
         }
-        document.getElementById('enteredCity').value = 'London';
-        getWeatherData('London');
+        document.getElementById('enteredCity').value = 'Hyderabad';
+        getWeatherData('Hyderabad');
       },
       options
     );
   } else {
     showAlert("Geolocation not supported. Showing default location.", "warning");
-    document.getElementById('enteredCity').value = 'London';
-    getWeatherData('London');
+    document.getElementById('enteredCity').value = 'Hyderabad';
+    getWeatherData('Hyderabad');
   }
 }
 
